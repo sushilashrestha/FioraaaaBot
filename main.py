@@ -1,11 +1,11 @@
 import asyncio
 from telegram import Update, InlineKeyboardButton
-from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram.ext import Application, CommandHandler, ContextTypes, filters, MessageHandler
 import random
 import logging
 import datetime
 import os
-from dotenv import load_dotenv, dotenv_values
+from dotenv import load_dotenv
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -29,27 +29,24 @@ load_dotenv()
 
 users = {}
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    try:
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         welcome_message = random.choice(cute_messages)
         await update.message.reply_text(welcome_message)
         await update.message.reply_text("I'll remind you to use your eye drops every 6 hours. "
                                         "Use /setreminder to start the reminders.")
-    except Exception as e:
-        logger.error(f"Error in start: {e}")
 
-async def set_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    try:
+async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    help_message = "Hi, How can I help you today? 😊\n\n" 
+    await update.message.reply_text(help_message)
+
+async def set_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = update.effective_user.id
         users[user_id] = {'next_reminder': datetime.datetime.now()}
         await schedule_next_reminder(context, user_id)
         await update.message.reply_text("Great! I'll remind you about your eye drops every 6 hours. "
                                         "The first reminder will be in 6 hours.")
-    except Exception as e:
-        logger.error(f"Error in set_reminder: {e}")
 
-async def send_reminder(context: ContextTypes.DEFAULT_TYPE) -> None:
-    try:
+async def send_reminder(context: ContextTypes.DEFAULT_TYPE):
         job = context.job
         user_id = job.data
         reminder_message = random.choice(reminder_messages)
@@ -58,43 +55,23 @@ async def send_reminder(context: ContextTypes.DEFAULT_TYPE) -> None:
             [InlineKeyboardButton("Done ✅", callback_data='done'),
              InlineKeyboardButton("Snooze 30min ⏰", callback_data='snooze')]
         ]
-        # Add code to send the reminder message with the keyboard
-    except Exception as e:
-        logger.error(f"Error in send_reminder: {e}")
 
-async def schedule_next_reminder(context: ContextTypes.DEFAULT_TYPE, user_id: int) -> None:
-    try:
+async def schedule_next_reminder(context: ContextTypes.DEFAULT_TYPE, user_id: int):
         next_reminder_time = users[user_id]['next_reminder'] + datetime.timedelta(hours=6)
         context.job_queue.run_once(send_reminder, next_reminder_time, context=user_id)
-    except Exception as e:
-        logger.error(f"Error in schedule_next_reminder: {e}")
 
-async def main() -> None:
-    try:
-        application = Application.builder().token(os.getenv("API_TOKEN")).build()
-
-        application.add_handler(CommandHandler("start", start))
-        application.add_handler(CommandHandler("setreminder", set_reminder))
-
-        await application.initialize()
-        await application.start()
-        await application.run_polling()
-    except Exception as e:
-        logger.error(f"Error in main: {e}")
-    finally:
-        await application.stop()
+async def error(update: Update, context: ContextTypes.DEFAULT_TYPE):
+      print(f"Update {update} caused error {context.error}")
 
 if __name__ == '__main__':
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+    print("Starting bot......")
+    app = Application.builder().token(os.getenv("API_TOKEN")).build()
 
-    try:
-        loop.run_until_complete(main())
-    except Exception as e:
-        logger.error(f"Unhandled exception: {e}")
-    finally:
-        loop.run_until_complete(loop.shutdown_asyncgens())
-        loop.close()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("setreminder", set_reminder))
+    app.add_handler(CommandHandler("help", help))
+
+    app.add_error_handler(error)
+
+    print("Polling......")
+    app.run_polling(poll_interval=5)
