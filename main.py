@@ -4,9 +4,8 @@ from telegram.ext import Application, CommandHandler, ContextTypes
 import random
 import logging
 import datetime
-
-# Replace 'YOUR_API_TOKEN' with your bot's API token
-API_TOKEN = ''
+import os
+from dotenv import load_dotenv, dotenv_values
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -25,6 +24,8 @@ reminder_messages = [
     "Don't forget your eye drops! 😊",
     "Eye drop time! Keep those eyes healthy! 🐱💧"
 ]
+
+load_dotenv()
 
 users = {}
 
@@ -70,7 +71,7 @@ async def schedule_next_reminder(context: ContextTypes.DEFAULT_TYPE, user_id: in
 
 async def main() -> None:
     try:
-        application = Application.builder().token(API_TOKEN).build()
+        application = Application.builder().token(os.getenv("API_TOKEN")).build()
 
         application.add_handler(CommandHandler("start", start))
         application.add_handler(CommandHandler("setreminder", set_reminder))
@@ -78,9 +79,10 @@ async def main() -> None:
         await application.initialize()
         await application.start()
         await application.run_polling()
-        await application.stop()
     except Exception as e:
         logger.error(f"Error in main: {e}")
+    finally:
+        await application.stop()
 
 if __name__ == '__main__':
     try:
@@ -93,3 +95,6 @@ if __name__ == '__main__':
         loop.run_until_complete(main())
     except Exception as e:
         logger.error(f"Unhandled exception: {e}")
+    finally:
+        loop.run_until_complete(loop.shutdown_asyncgens())
+        loop.close()
