@@ -6,8 +6,8 @@ import random
 import logging
 from datetime import datetime, timedelta
 
-# Replace 'YOUR_BOT_TOKEN' with your actual bot token
-TOKEN = 'YOUR_BOT_TOKEN'
+
+TOKEN = '6718507681:AAFpTE2sb-BAK3aLbsFRKBwTsKOGnyINDJk'
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
